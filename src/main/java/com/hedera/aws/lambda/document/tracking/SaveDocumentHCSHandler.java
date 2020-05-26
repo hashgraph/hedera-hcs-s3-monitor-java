@@ -65,8 +65,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
 
          // Download the docuemnt from S3 into a stream
         AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-                .withForceGlobalBucketAccessEnabled(Boolean.TRUE)
-                .withRegion(region).build();
+                .build();
         S3Object s3Object = s3Client.getObject(new GetObjectRequest(
                 bucketName, srcFileKey));
         InputStream is = s3Object.getObjectContent();
