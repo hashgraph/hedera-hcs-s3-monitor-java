@@ -1,15 +1,15 @@
-#Build the code
+# Build the code
 
  Build the java code by invoking `mvn install` in the directory where `pom.xml` is located and note down the path to the resulting `.jar` file; it will be generated in `target\aws-lambda-document-tracking-1.0-SNAPSHOT.jar`
 
  Throughout this documentation, we need to be consistent with the AWS region eg: `us-east-2`.  
 
-#Set up a symmetric encryption key
+# Set up a symmetric encryption key
 
 Before uploading your code, you need to create a encryption key to pass the HH private key securely into the application. For this, goto `https://us-east-2.console.aws.amazon.com/kms/home
 ` (note the `us-east-2` region in the URL and substitute appropriately). Create a new `symmetric` key and name it. Once created, click on the key alias and note down the key ARN. It should look similar to this format: `arn:aws:kms:us-east-2:707131235256:key/dbb9655a-7807-4a67-868f-8a683ba0d260`
 
-#Creating a user role
+# Creating a user role
 You will need a role that has access to the `s3 bucket`.
 Head over to `https://console.aws.amazon.com/iam/home#/roles/` and select a role; click on the role name and click on `Attach Policies`.  
 
@@ -17,7 +17,7 @@ Attach `AmazonS3FullAccess` to give full access to that role
 
 > :warning: **Make sure you know what these policies do on a production environment**: Be very careful here!
 
-#Create a lambda function
+# Create a lambda function
 
  Head over to `https://us-east-2.console.aws.amazon.com/lambda/` make sure the region matches  and create a new lambda funciton with name `hcsOnS3FileUpload`. 
 
