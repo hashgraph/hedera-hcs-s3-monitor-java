@@ -23,7 +23,6 @@ and add
 - OPERATOR_KEY    | 302ea12...   # your private key
 - TOPIC_ID        | 0.0.23456
 - NETWORK         | TESTNET      # or MAINNET
-- MIRROR_CLIENT   | hcs.testnet.mirrornode.hedera.com:5600  #  or main net mirror url:port
 ```
 
 Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
@@ -38,4 +37,4 @@ Save the new lambda function.
 
 # Testing
 
- Upload a file in the `tracked-docs` folder and the HCS output will appear in `tracked-docs-log`. For instance if you upload `abc.pdf` the log folder will contain a text file named `abc.pdf.hcs.txt`. You can access that log file via the object url `https://[bucket-name].s3.[region].amazonaws.com/tracked-docs-log/abc.pdf.hcs.txt' If nothing shows up after the timeout period (25 seconds) then some error might have occurred; delete the file and retry. 
+ Upload a file in the `tracked-docs` folder and the HCS output will appear in `tracked-docs-log`. For instance if you upload `abc.pdf` the log folder will contain a text file named `abc.pdf.hcs.txt`. You can access that log file via the object url `https://[bucket-name].s3.[region].amazonaws.com/tracked-docs-log/abc.pdf.hcs.txt` If nothing shows up after the timeout period (25 seconds) then some error might have occurred; delete the file and retry. 
