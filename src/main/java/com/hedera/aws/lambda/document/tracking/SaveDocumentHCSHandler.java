@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.apache.commons.codec.binary.Hex;
+import org.bouncycastle.asn1.cms.RecipientInfo;
 
 public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
 
@@ -76,11 +78,11 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
         TransactionId transactionId = new TransactionId(OPERATOR_ID);
 
         try {
-        
+            String md5AsBase64 = Md5Utils.md5AsBase64(is);
             ConsensusMessageSubmitTransaction setMessage = new ConsensusMessageSubmitTransaction()
                     .setTransactionId(transactionId)
                     .setTopicId(TOPIC_ID)
-                    .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5AsBase64: %s", bucketName, srcFileKey,Md5Utils.md5AsBase64(is)));
+                    .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5AsBase64: %s", bucketName, srcFileKey, md5AsBase64));
 
             TransactionId execute = setMessage.execute(client);
             execute.getReceipt(client);
@@ -89,6 +91,25 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
             receipt = transactionId.getReceipt(client);
             for (int i = 0; i <= 100; i++) {
                 if (receipt.status.toString().endsWith("SUCCESS")) {
+                    s3Client.putObject(
+                            bucketName, 
+                            srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.txt", 
+                            String.format(
+                                    "Filename: %s\n"
+                                    +  "MD5 checksum (Base64): %s\n" 
+                                    + "Transaction-ID: %s\n"
+                                    + "Topic:%s \n"
+                                    + "Sequence no:%s \n"
+                                    + "Running hash: %s \n"
+                            , srcFileKey
+                            , md5AsBase64
+                            , transactionId.toString()
+                            , TOPIC_ID
+                            , receipt.getConsensusTopicSequenceNumber()
+                            , Hex.encodeHexString(receipt.getConsensusTopicRunningHash())
+                            
+                            )
+                    );
                     break;
                 } else if (receipt.status.toString().endsWith("OK")) {
                     Thread.sleep(3000L);
