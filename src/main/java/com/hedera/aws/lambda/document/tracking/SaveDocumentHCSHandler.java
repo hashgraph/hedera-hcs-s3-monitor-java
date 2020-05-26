@@ -1,13 +1,20 @@
 package com.hedera.aws.lambda.document.tracking;
 
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
 import com.amazonaws.services.kms.model.DecryptRequest;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.event.S3EventNotification;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.Base64;
+import com.amazonaws.util.Md5Utils;
 import com.hedera.hashgraph.sdk.Client;
 import com.hedera.hashgraph.sdk.HederaNetworkException;
 import com.hedera.hashgraph.sdk.HederaStatusException;
@@ -17,6 +24,8 @@ import com.hedera.hashgraph.sdk.account.AccountId;
 import com.hedera.hashgraph.sdk.consensus.ConsensusMessageSubmitTransaction;
 import com.hedera.hashgraph.sdk.consensus.ConsensusTopicId;
 import com.hedera.hashgraph.sdk.crypto.ed25519.Ed25519PrivateKey;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
@@ -32,11 +41,12 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
         S3EventNotification.S3EventNotificationRecord record = event.getRecords().get(0);
 
         String bucketName = record.getS3().getBucket().getName();
-        String filePath = record.getS3().getObject().getKey();
-
+        String srcFileKey = record.getS3().getObject().getKey();
+        String region = record.getAwsRegion();
         // Get some debug info 
         System.out.println("Bucket Name is " + bucketName);
-        System.out.println("File Path is " + filePath);
+        System.out.println("File Path is " + srcFileKey);
+        System.out.println("The region is " + region);
         System.out.println("The environment variables are");
         // Avoid using because aws secret key may show up in log
         // for (String k : System.getenv().keySet()){
@@ -53,14 +63,26 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
         // Set the operator account ID and operator private key
         client.setOperator(OPERATOR_ID, OPERATOR_KEY);
 
+         // Download the docuemnt from S3 into a stream
+        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+                .withForceGlobalBucketAccessEnabled(Boolean.TRUE)
+                .withRegion(region).build();
+        S3Object s3Object = s3Client.getObject(new GetObjectRequest(
+                bucketName, srcFileKey));
+        InputStream is = s3Object.getObjectContent();
+        
+        
+        // Prepare an HCS message and send it to the network
         TransactionReceipt receipt = null;
         TransactionId transactionId = new TransactionId(OPERATOR_ID);
-        ConsensusMessageSubmitTransaction setMessage = new ConsensusMessageSubmitTransaction()
-                .setTransactionId(transactionId)
-                .setTopicId(TOPIC_ID)
-                .setMessage(String.format("Bucket Name:%s File Path: %s", bucketName, filePath));
 
         try {
+        
+            ConsensusMessageSubmitTransaction setMessage = new ConsensusMessageSubmitTransaction()
+                    .setTransactionId(transactionId)
+                    .setTopicId(TOPIC_ID)
+                    .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5AsBase64: %s", bucketName, srcFileKey,Md5Utils.md5AsBase64(is)));
+
             TransactionId execute = setMessage.execute(client);
             execute.getReceipt(client);
 
@@ -74,11 +96,13 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
                     receipt = transactionId.getReceipt(client);
                 } else {
                     System.out.println("Error status: " + receipt.status.toString());
-                    System.exit(0);
+                    return null;
                 }
             }
         } catch (HederaNetworkException | HederaStatusException | InterruptedException d) {
             System.out.println("Exception, comms error");
+        } catch (IOException ex) {
+            System.out.println("Exception: Can not read file to MD5");
         }
 
         return null;
