@@ -93,8 +93,10 @@ You can send test events from within the lambda function administration console 
 
 Upload a file in the `tracked-docs` folder and the HCS output will appear in `tracked-docs-log`. For instance if you upload `abc.pdf` the log folder will contain a text file named `abc.pdf.hcs.txt`. You can access that log file via the object url `https://[bucket-name].s3.[region].amazonaws.com/tracked-docs-log/abc.pdf.hcs.txt```
 
+Additionally, you will also find a file named `abc.pdf.hcs.json` and one named `abc.pdf.hcs.html`. The latter is a HTML formated output of the same data.   
 
 If required, edit the permisions of both folders in `s3` so that the public can have read access to the contents. 
 
+You can serve the html file directly from amzon s3 by clicking on the properties tab of the bucket and enable static file web serving under the relevant card. 
 
 If nothing shows up after the timeout period (25 seconds) then some error might have occurred; delete the file and retry. 

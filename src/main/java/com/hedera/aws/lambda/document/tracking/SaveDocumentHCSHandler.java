@@ -12,6 +12,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.event.S3EventNotification;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.Base64;
 import com.amazonaws.util.Md5Utils;
@@ -24,10 +25,12 @@ import com.hedera.hashgraph.sdk.account.AccountId;
 import com.hedera.hashgraph.sdk.consensus.ConsensusMessageSubmitTransaction;
 import com.hedera.hashgraph.sdk.consensus.ConsensusTopicId;
 import com.hedera.hashgraph.sdk.crypto.ed25519.Ed25519PrivateKey;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.text.MessageFormat;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.asn1.cms.RecipientInfo;
 
@@ -91,12 +94,13 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
             receipt = transactionId.getReceipt(client);
             for (int i = 0; i <= 100; i++) {
                 if (receipt.status.toString().endsWith("SUCCESS")) {
+                    // create a text file copy
                     s3Client.putObject(
                             bucketName, 
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.txt", 
                             String.format(
-                                    "Filename: %s\n"
-                                    +  "MD5 checksum (Base64): %s\n" 
+                                      "Filename: %s\n"
+                                    + "MD5 checksum (Base64): %s\n" 
                                     + "Transaction-ID: %s\n"
                                     + "Topic:%s \n"
                                     + "Sequence no:%s \n"
@@ -110,6 +114,48 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
                             
                             )
                     );
+                    // create a json copy
+                    s3Client.putObject(
+                            bucketName, 
+                            srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.json", 
+                            String.format(
+                                      "{\n\tfilename:\"%s\",\n"
+                                    + "\tmd5-checksum-Base64:\"%s\",\n" 
+                                    + "\ttransaction-id:\"%s\",\n"
+                                    + "\ttopic:\"%s\",\n"
+                                    + "\tsequence-no:\"%s\",\n"
+                                    + "\trunning-hash:\"%s\"\n}"
+                            , srcFileKey
+                            , md5AsBase64
+                            , transactionId.toString()
+                            , TOPIC_ID
+                            , receipt.getConsensusTopicSequenceNumber()
+                            , Hex.encodeHexString(receipt.getConsensusTopicRunningHash())
+                            
+                            )
+                    );
+                    // create a html file copy
+                    ObjectMetadata metadata = new ObjectMetadata();
+                    metadata.setContentType("text/html");
+                    s3Client.putObject(
+                            bucketName, 
+                            
+                            srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.html", 
+                            new ByteArrayInputStream(
+                                this.getHTMLTemplate()
+                                    .replace("{0}", srcFileKey)
+                                    .replace("{1}", md5AsBase64)
+                                    .replace("{2}", transactionId.toString())
+                                    .replace("{3}", TOPIC_ID.toString())
+                                    .replace("{4}", receipt.getConsensusTopicSequenceNumber()+"")
+                                    .replace("{5}", Hex.encodeHexString(receipt.getConsensusTopicRunningHash()))
+                                    .getBytes()
+                            ),
+                            metadata
+                            
+                    );
+                    
+                    
                     break;
                 } else if (receipt.status.toString().endsWith("OK")) {
                     Thread.sleep(3000L);
@@ -140,4 +186,82 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
         return decrypted;
     }
 
+    private String getHTMLTemplate(){
+        return "<!DOCTYPE html>\n<html><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+        "<style>\n" +
+        ".title {\n" +
+        "white-space: nowrap;\n" +
+        "text-transform: uppercase;\n" +
+        "text-align: right;\n" +
+        "font-family: Styrene A Web, Helvetica Neue, sans-serif;\n" +
+        "font-feature-settings: normal;\n" +
+        "font-kerning: auto;\n" +
+        "font-language-override: normal;\n" +
+        "font-optical-sizing: auto;\n" +
+        "font-size: 14px;\n" +
+        "font-size-adjust: none;\n" +
+        "font-stretch: 100%;\n" +
+        "font-style: normal;\n" +
+        "font-variant: normal;\n" +
+        "font-variant-alternates: normal;\n" +
+        "font-variant-caps: normal;\n" +
+        "font-variant-east-asian: normal;\n" +
+        "font-variant-ligatures: normal;\n" +
+        "font-variant-numeric: normal;\n" +
+        "font-variant-position: normal;\n" +
+        "font-variation-settings: normal;\n" +
+        "font-weight: 400;\n" +
+        "letter-spacing: 2.8px;\n" +
+        "line-height: 18.2px;\n" +
+        "color:white;\n" +
+        "padding: 44px;\n" +
+        "}\n" +
+        "\n" +
+        ".data {\n" +
+        "color:white;\n" +
+        "text-align: center;\n" +
+        "font-family: Styrene A Web, Helvetica Neue, sans-serif;\n" +
+        "font-feature-settings: normal;\n" +
+        "font-kerning: auto;\n" +
+        "font-language-override: normal;\n" +
+        "font-optical-sizing: auto;\n" +
+        "font-size: 14px;\n" +
+        "font-size-adjust: none;\n" +
+        "font-stretch: 100%;\n" +
+        "font-style: normal;\n" +
+        "font-variant: normal;\n" +
+        "font-variant-alternates: normal;\n" +
+        "font-variant-caps: normal;\n" +
+        "font-variant-east-asian: normal;\n" +
+        "font-variant-ligatures: normal;\n" +
+        "font-variant-numeric: normal;\n" +
+        "font-variant-position: normal;\n" +
+        "font-variation-settings: normal;\n" +
+        "font-weight: 400;\n" +
+        "letter-spacing: 2.8px;\n" +
+        "line-height: 18.2px;\n" +
+        "padding: 44px;\n" +
+        "}\n" +
+        "\n" +
+        "td{\n" +
+        "border-top:   1pt dotted white;\n" +
+        "border-right: 1px dotted white;\n" +
+        "}\n" +
+        "\n" +
+        "\n" +
+        "\n" +
+        "</style>\n" +
+        "<body style=\"background: #222;\">\n" +
+        "	<div style=\"overflow-x:auto;\"><table>\n" +
+        "		<tr><td class=\"title\">Filename</td><td class=\"data\">{0}</td></tr>\n" +
+        "		<tr><td class=\"title\">MD5 checksum (Base64)</td><td class=\"data\">{1}</td></tr>\n" +
+        "		<tr><td class=\"title\">Transaction-ID</td> <td class=\"data\">{2}</td></tr>\n" +
+        "		<tr><td class=\"title\">Topic</td> <td class=\"data\">{3}</td></tr> \n" +
+        "		<tr><td class=\"title\">Sequence no</td><td class=\"data\">{4}</td></tr> \n" +
+        "		<tr><td class=\"title\">Running hash</td><td class=\"data\" style=\"word-wrap: all; word-break:break-all; \">{5}</td></tr>\n" +
+        "	</table></div>\n" +
+        "</body>\n" +
+        "</html>";
+    }
+    
 }
