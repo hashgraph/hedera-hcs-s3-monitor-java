@@ -1,7 +1,5 @@
 package com.hedera.aws.lambda.document.tracking;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.kms.AWSKMS;
 import com.amazonaws.services.kms.AWSKMSClientBuilder;
 import com.amazonaws.services.kms.model.DecryptRequest;
@@ -30,10 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.text.MessageFormat;
-import javax.xml.ws.WebServiceException;
 import org.apache.commons.codec.binary.Hex;
-import org.bouncycastle.asn1.cms.RecipientInfo;
 
 public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> 
 
