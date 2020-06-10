@@ -1,8 +1,18 @@
 # Build the code
 
- Build the java code by invoking `mvn install` in the directory where `pom.xml` is located and note the path to the resulting `.jar` file; it will be generated in `target\aws-lambda-document-tracking-1.0-SNAPSHOT.jar`
+Build the java code by invoking `mvn install` in the directory where `pom.xml` is located and note the path to the resulting `.jar` file; it will be generated in `target\aws-lambda-document-tracking-1.0-SNAPSHOT.jar`
 
- Throughout this documentation, we need to be consistent with the AWS region eg: `us-east-2`.  
+You will need to have a hedera topic id to install  lambda function. If you don't have one the resulting jar contains a convenience function to generate one in you system console. On non windows machines invoke 
+
+```mvn exec:java -Dexec.mainClass="com.hedera.aws.lambda.document.tracking.CreateTopic"```
+
+on windows machines invoke 
+
+```mvn exec:java -D"exec.mainClass"="com.hedera.aws.lambda.document.tracking.CreateTopic"```
+
+and follow the instructions in the prompt. 
+
+Throughout this documentation, we need to be consistent with the AWS region eg: `us-east-2`.  
 
 # Set up a symmetric encryption key
 
@@ -27,9 +37,9 @@ In the *environment variables* section click on `Manage Environment Variables`
 and add
 
 ```
-- OPERATOR_ID     | 0.0.12345
-- OPERATOR_KEY    | 302ea12...   # your private key
-- TOPIC_ID        | 0.0.23456
+- OPERATOR_ID     | 0.0.12345    # your HH Account ID
+- OPERATOR_KEY    | 302ea12...   # your HH private key
+- TOPIC_ID        | 0.0.23456    # your HH topic
 - NETWORK         | TESTNET      # or MAINNET
 ```
 
@@ -47,7 +57,7 @@ Save the new lambda function.
  ```tracked-docs``` 
  and the second one 
  ```tracked-docs-log``` . 
- 
+
  Click `Properties` of the bucket  (second tab at the top of the screen) and locate the `Events` card and click the [+] symbol to `add notification`. Tick the `All objects create events` and type `tracked-docs/` in the prefix section. Select `lambda function` in the *Send To* section and the resulting drop-down should list `hcsOnS3FileUpload`. 
 
 # Testing

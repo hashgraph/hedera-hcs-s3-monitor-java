@@ -31,10 +31,13 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
+import javax.xml.ws.WebServiceException;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.asn1.cms.RecipientInfo;
 
-public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
+public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> 
+
+{
 
     @Override
     public String handleRequest(
@@ -167,8 +170,12 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> {
             }
         } catch (HederaNetworkException | HederaStatusException | InterruptedException d) {
             System.out.println("Exception, comms error");
+            d.printStackTrace();
+            throw new RuntimeException("Exception, comms error");
         } catch (IOException ex) {
             System.out.println("Exception: Can not read file to MD5");
+            ex.printStackTrace();
+            throw new RuntimeException("Exception: Can not read file to MD5");
         }
 
         return null;
