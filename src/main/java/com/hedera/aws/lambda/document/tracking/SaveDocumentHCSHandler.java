@@ -28,7 +28,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
+
+
+
 
 public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String> 
 
@@ -79,11 +84,12 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
         TransactionId transactionId = new TransactionId(OPERATOR_ID);
 
         try {
-            String md5AsBase64 = Md5Utils.md5AsBase64(is);
+            String md5 = DatatypeConverter.printHexBinary(Md5Utils.computeMD5Hash(is)).toUpperCase();
+            
             ConsensusMessageSubmitTransaction setMessage = new ConsensusMessageSubmitTransaction()
                     .setTransactionId(transactionId)
                     .setTopicId(TOPIC_ID)
-                    .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5AsBase64: %s", bucketName, srcFileKey, md5AsBase64));
+                    .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5: %s", bucketName, srcFileKey, md5));
 
             TransactionId execute = setMessage.execute(client);
             execute.getReceipt(client);
@@ -98,18 +104,19 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.txt", 
                             String.format(
                                       "Filename: %s\n"
-                                    + "MD5 checksum (Base64): %s\n" 
+                                    + "MD5 checksum: %s\n" 
                                     + "Transaction-ID: %s\n"
                                     + "Topic:%s \n"
                                     + "Sequence no:%s \n"
                                     + "Running hash: %s \n"
+                                    + (System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? "Link: https://ledger.hashlog.io/tx/%s" :"Link: https://ledger-testnet.hashlog.io/tx/%s") 
                             , srcFileKey
-                            , md5AsBase64
+                            , md5
                             , transactionId.toString()
                             , TOPIC_ID
                             , receipt.getConsensusTopicSequenceNumber()
                             , Hex.encodeHexString(receipt.getConsensusTopicRunningHash())
-                            
+                            , transactionId.toString()
                             )
                     );
                     // create a json copy
@@ -118,18 +125,20 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.json", 
                             String.format(
                                       "{\n\tfilename:\"%s\",\n"
-                                    + "\tmd5-checksum-Base64:\"%s\",\n" 
+                                    + "\tmd5:\"%s\",\n" 
                                     + "\ttransaction-id:\"%s\",\n"
                                     + "\ttopic:\"%s\",\n"
                                     + "\tsequence-no:\"%s\",\n"
-                                    + "\trunning-hash:\"%s\"\n}"
+                                    + "\trunning-hash:\"%s\",\n"
+                                    + (System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? "\tlink:\"https://ledger.hashlog.io/tx/%s\"" :"\tLink:\"https://ledger-testnet.hashlog.io/tx/%s\"") 
+                                    +"\n}"
                             , srcFileKey
-                            , md5AsBase64
+                            , md5
                             , transactionId.toString()
                             , TOPIC_ID
                             , receipt.getConsensusTopicSequenceNumber()
                             , Hex.encodeHexString(receipt.getConsensusTopicRunningHash())
-                            
+                            , transactionId.toString()
                             )
                     );
                     // create a html file copy
@@ -142,11 +151,12 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             new ByteArrayInputStream(
                                 this.getHTMLTemplate()
                                     .replace("{0}", srcFileKey)
-                                    .replace("{1}", md5AsBase64)
+                                    .replace("{1}", md5)
                                     .replace("{2}", transactionId.toString())
                                     .replace("{3}", TOPIC_ID.toString())
                                     .replace("{4}", receipt.getConsensusTopicSequenceNumber()+"")
                                     .replace("{5}", Hex.encodeHexString(receipt.getConsensusTopicRunningHash()))
+                                    .replace("{6}", (System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? "https://ledger.hashlog.io/tx/"+transactionId.toString() :"https://ledger-testnet.hashlog.io/tx/"+transactionId.toString())  )
                                     .getBytes()
                             ),
                             metadata
@@ -256,11 +266,12 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
         "<body style=\"background: #222;\">\n" +
         "	<div style=\"overflow-x:auto;\"><table>\n" +
         "		<tr><td class=\"title\">Filename</td><td class=\"data\">{0}</td></tr>\n" +
-        "		<tr><td class=\"title\">MD5 checksum (Base64)</td><td class=\"data\">{1}</td></tr>\n" +
+        "		<tr><td class=\"title\">MD5 hash</td><td class=\"data\">{1}</td></tr>\n" +
         "		<tr><td class=\"title\">Transaction-ID</td> <td class=\"data\">{2}</td></tr>\n" +
         "		<tr><td class=\"title\">Topic</td> <td class=\"data\">{3}</td></tr> \n" +
         "		<tr><td class=\"title\">Sequence no</td><td class=\"data\">{4}</td></tr> \n" +
         "		<tr><td class=\"title\">Running hash</td><td class=\"data\" style=\"word-wrap: all; word-break:break-all; \">{5}</td></tr>\n" +
+        "		<tr><td class=\"title\">Link</td><td class=\"data\"><a href=\"{6}\">{6}</a></td></tr>\n" +
         "	</table></div>\n" +
         "</body>\n" +
         "</html>";

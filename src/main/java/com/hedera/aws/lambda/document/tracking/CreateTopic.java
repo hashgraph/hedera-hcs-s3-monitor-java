@@ -28,6 +28,7 @@ import com.hedera.hashgraph.sdk.consensus.ConsensusTopicCreateTransaction;
 import com.hedera.hashgraph.sdk.consensus.ConsensusTopicId;
 import com.hedera.hashgraph.sdk.crypto.ed25519.Ed25519PrivateKey;
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.Map;
@@ -35,12 +36,20 @@ import java.util.Map;
 public class CreateTopic {
 
     public static void main(String[] args) throws Exception {
-        System.out.println("Is the topic for Main Net (M) or test net (T): Type M or T");
         
-        java.io.BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        Console console = System.console();
+        if (console == null) {
+            System.out.println("Couldn't get Console instance - this tool does not work from inside IDE consoles");
+            System.exit(0);
+        }
+        console.printf("Is the topic for Main Net (M) or test net (T): Type M or T\n");
+        
+        //java.io.BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        
+      
         
         
-        String NETWORK = in.readLine();
+        String NETWORK = console.readLine();
         Client client = null;
         switch (NETWORK.toUpperCase()){
             case "T": client = Client.forTestnet(); break;
@@ -48,12 +57,12 @@ public class CreateTopic {
             default: System.out.print("Wrong input"); System.exit(0);
         }
         
-        System.out.println("Type yur operator account id in the following format: 0.0.xxx");
-        String s_operatorId = in.readLine();
+        System.out.println("Type yur operator account id in the following format: 0.0.xxx ");
+        String s_operatorId = console.readLine();
         AccountId operatorId = AccountId.fromString(s_operatorId);
         
-        System.out.println("Paste your operator private key and press enter: 302...");
-        String s_operatorKey = in.readLine();
+        System.out.println("Paste your operator private key and press enter (input hidden): 302...");
+        String s_operatorKey = new String(console.readPassword());
         Ed25519PrivateKey operatorKey = Ed25519PrivateKey.fromString(s_operatorKey.trim());
         
         
@@ -82,8 +91,9 @@ public class CreateTopic {
         ConsensusTopicId consensusTopicId = receipt.getConsensusTopicId();
         
         System.out.println("Your new topic id is: "+consensusTopicId.toString());
-
+        System.exit(0);
        
     }
 
+   
 }
