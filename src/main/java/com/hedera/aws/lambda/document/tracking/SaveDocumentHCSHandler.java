@@ -19,6 +19,7 @@ import com.hedera.hashgraph.sdk.HederaNetworkException;
 import com.hedera.hashgraph.sdk.HederaStatusException;
 import com.hedera.hashgraph.sdk.TransactionId;
 import com.hedera.hashgraph.sdk.TransactionReceipt;
+import com.hedera.hashgraph.sdk.TransactionRecord;
 import com.hedera.hashgraph.sdk.account.AccountId;
 import com.hedera.hashgraph.sdk.consensus.ConsensusMessageSubmitTransaction;
 import com.hedera.hashgraph.sdk.consensus.ConsensusTopicId;
@@ -29,6 +30,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 
@@ -93,11 +95,15 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
 
             TransactionId execute = setMessage.execute(client);
             execute.getReceipt(client);
+            //execute.getRecord(client);
 
+            //TransactionRecord record1 = transactionId.getRecord(client);\
             
             receipt = transactionId.getReceipt(client);
             for (int i = 0; i <= 100; i++) {
                 if (receipt.status.toString().endsWith("SUCCESS")) {
+                    
+                    Instant consensusTimestamp = transactionId.getRecord(client).consensusTimestamp;
                     // create a text file copy
                     s3Client.putObject(
                             bucketName, 
@@ -106,6 +112,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                                       "Filename: %s\n"
                                     + "MD5 checksum: %s\n" 
                                     + "Transaction-ID: %s\n"
+                                    + "Timestamp: %s\n"
                                     + "Topic:%s \n"
                                     + "Sequence no:%s \n"
                                     + "Running hash: %s \n"
@@ -113,6 +120,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             , srcFileKey
                             , md5
                             , transactionId.toString()
+                            , consensusTimestamp.toString()
                             , TOPIC_ID
                             , receipt.getConsensusTopicSequenceNumber()
                             , Hex.encodeHexString(receipt.getConsensusTopicRunningHash())
@@ -127,6 +135,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                                       "{\n\tfilename:\"%s\",\n"
                                     + "\tmd5:\"%s\",\n" 
                                     + "\ttransaction-id:\"%s\",\n"
+                                    + "\ttimestamp:\"%s\",\n"
                                     + "\ttopic:\"%s\",\n"
                                     + "\tsequence-no:\"%s\",\n"
                                     + "\trunning-hash:\"%s\",\n"
@@ -135,6 +144,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             , srcFileKey
                             , md5
                             , transactionId.toString()
+                            , consensusTimestamp.toString()
                             , TOPIC_ID
                             , receipt.getConsensusTopicSequenceNumber()
                             , Hex.encodeHexString(receipt.getConsensusTopicRunningHash())
@@ -153,6 +163,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                                     .replace("{0}", srcFileKey)
                                     .replace("{1}", md5)
                                     .replace("{2}", transactionId.toString())
+                                    .replace("{2_1}", consensusTimestamp.toString())
                                     .replace("{3}", TOPIC_ID.toString())
                                     .replace("{4}", receipt.getConsensusTopicSequenceNumber()+"")
                                     .replace("{5}", Hex.encodeHexString(receipt.getConsensusTopicRunningHash()))
@@ -268,6 +279,8 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
         "		<tr><td class=\"title\">Filename</td><td class=\"data\">{0}</td></tr>\n" +
         "		<tr><td class=\"title\">MD5 hash</td><td class=\"data\">{1}</td></tr>\n" +
         "		<tr><td class=\"title\">Transaction-ID</td> <td class=\"data\">{2}</td></tr>\n" +
+        "		<tr><td class=\"title\">Timestamp</td> <td class=\"data\">{2_1}</td></tr>\n" +
+
         "		<tr><td class=\"title\">Topic</td> <td class=\"data\">{3}</td></tr> \n" +
         "		<tr><td class=\"title\">Sequence no</td><td class=\"data\">{4}</td></tr> \n" +
         "		<tr><td class=\"title\">Running hash</td><td class=\"data\" style=\"word-wrap: all; word-break:break-all; \">{5}</td></tr>\n" +
