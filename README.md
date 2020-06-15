@@ -43,7 +43,9 @@ and add
 - NETWORK         | TESTNET      # or MAINNET
 ```
 
-Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
+Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. 
+Make sure you select "Use a customer master key" in the radio menu and paste the kms ARN you created in the step above. It should look similar to this `arn:aws:kms:us-east-2:707131235256:key/dbb9655a-7807-4a67-868f-8a683ba0d260`
+This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
 
 In the card *Basic Settings* increase the `timeout` to `25 seconds` - on average decrypting sending and receiving feedback may take up 20 seconds. 
 
