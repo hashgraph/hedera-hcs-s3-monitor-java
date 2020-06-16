@@ -29,7 +29,7 @@ Attach `AmazonS3FullAccess` to give full access to that role
 
 # Create a lambda function
 
- Head over to [https://us-east-2.console.aws.amazon.com/lambda/](https://us-east-2.console.aws.amazon.com/lambda/) make sure the region matches  and create a new lambda funciton with name `hcsOnS3FileUpload`. 
+ Head over to [https://us-east-2.console.aws.amazon.com/lambda/](https://us-east-2.console.aws.amazon.com/lambda/) make sure the region matches  and create a new lambda function with name `hcsOnS3FileUpload`. 
 
 In the *Function code* section select `Upload a zip or jar file` with  `Runtime: Java11`. In the `Handler` field type `com.hedera.aws.lambda.document.tracking.SaveDocumentHCSHandler` Then upload `target\aws-lambda-document-tracking-1.0-SNAPSHOT.jar`
 
@@ -43,13 +43,24 @@ and add
 - NETWORK         | TESTNET      # or MAINNET
 ```
 
-Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
+Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. While the popup is still open, expand the tree item: `Execution role policy` and copy the resulting javascript - you will need it later.
+
+Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
 
 In the card *Basic Settings* increase the `timeout` to `25 seconds` - on average decrypting sending and receiving feedback may take up 20 seconds. 
 
-In the same card, select the role you defined in the previous section
+In the same card, select the role you defined in the previous section. There will be a link that will allow you to edit that role. Click on it and click through this sequence: `Attach policies > Create Policy > Json` On the resulting JSon editor you will see
 
-Save the new lambda function. 
+```{
+{
+	"Version": "2012-10-17",
+    "Statement": []
+} 
+```
+
+Paste the policy that you copied into your clip-board by replacing the above ;  review, you can ignore the warning,  and save it.
+
+Come back to the lambda function and save it if you have not done so already.
 
 # Create an s3 bucket and enable tracking
 

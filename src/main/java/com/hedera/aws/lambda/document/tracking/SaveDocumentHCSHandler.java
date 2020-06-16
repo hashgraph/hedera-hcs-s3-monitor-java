@@ -31,6 +31,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 
@@ -57,7 +59,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
         System.out.println("Bucket Name is " + bucketName);
         System.out.println("File Path is " + srcFileKey);
         System.out.println("The region is " + region);
-        System.out.println("The environment variables are");
+        //System.out.println("The environment variables are");
         // Avoid using because aws secret key may show up in log
         // for (String k : System.getenv().keySet()){
         //    System.out.println(k + ":" + System.getenv(k));
@@ -177,6 +179,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                     
                     break;
                 } else if (receipt.status.toString().endsWith("OK")) {
+                    System.out.println("Attempt "+  i + " is still justOK");
                     Thread.sleep(3000L);
                     receipt = transactionId.getReceipt(client);
                 } else {
@@ -200,13 +203,23 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
     // pull the encrypted OPERATOR_KEY and decrypt. 
     private String decryptedOperatorKey() {
         System.out.println("Decrypting key  " + System.getenv("OPERATOR_KEY"));
+        
         byte[] encryptedKey = Base64.decode(System.getenv("OPERATOR_KEY"));
+        Map<String, String> encryptionContext = new HashMap<>();
+        encryptionContext.put("LambdaFunctionName",
+                System.getenv("AWS_LAMBDA_FUNCTION_NAME"));
+
         AWSKMS client = AWSKMSClientBuilder.defaultClient();
+
         DecryptRequest request = new DecryptRequest()
-                .withCiphertextBlob(ByteBuffer.wrap(encryptedKey));
+                .withCiphertextBlob(ByteBuffer.wrap(encryptedKey))
+                .withEncryptionContext(encryptionContext);
+
         ByteBuffer plainTextKey = client.decrypt(request).getPlaintext();
-        String decrypted = new String(plainTextKey.array(), Charset.forName("UTF-8"));
-        return decrypted;
+        
+        String key = new String(plainTextKey.array(), Charset.forName("UTF-8"));
+        System.out.println("Decrypted key should start with 302. It starts with " + key.substring(0, 3));
+        return key;
     }
 
     private String getHTMLTemplate(){
