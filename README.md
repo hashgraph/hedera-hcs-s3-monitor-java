@@ -37,10 +37,12 @@ In the *environment variables* section click on `Manage Environment Variables`
 and add
 
 ```
-- OPERATOR_ID     | 0.0.12345    # your HH Account ID
-- OPERATOR_KEY    | 302ea12...   # your HH private key
-- TOPIC_ID        | 0.0.23456    # your HH topic
-- NETWORK         | TESTNET      # or MAINNET
+- OPERATOR_ID     | 0.0.12345             # your HH Account ID
+- OPERATOR_KEY    | 302ea12...            # your HH private key
+- TOPIC_ID        | 0.0.23456             # your HH topic
+- NETWORK         | TESTNET               # or MAINNET
+- NETWORK_ID      | 0.0.12345             # e.g.   0.0.3 for main
+- NETWORK_IP_PORT | 123.456.789.012:1234  # e.g.   35.237.200.180:50211 for 0.0.3 on main 
 ```
 
 Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. While the popup is still open, expand the tree item: `Execution role policy` and copy the resulting javascript - you will need it later.
@@ -50,7 +52,7 @@ Save the popup and make sure that the environment variable has been encrypted in
 In the card *Basic Settings* increase the `timeout` to `60 seconds` - on average decrypting sending and receiving feedback may take up 20 seconds. 
 Make sure you select "Use a customer master key" in the radio menu and paste the kms ARN you created in the step above. It should look similar to this `arn:aws:kms:us-east-2:7xxxxxx:key/xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx`
 
-In the same card, select the role you defined in the previous section. There will be a link that will allow you to edit that role. Click on it and click through this sequence: `Attach policies > Create Policy > Json` On the resulting JSon editor you will see
+OPTIONAL STEP: In the same card, select the role you defined in the previous section. There will be a link that will allow you to edit that role. Click on it and click through this sequence: `Attach policies > Create Policy > Json` On the resulting JSon editor you will see
 
 ```{
 {

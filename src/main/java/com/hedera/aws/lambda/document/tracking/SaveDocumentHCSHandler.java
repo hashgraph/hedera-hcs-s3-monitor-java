@@ -19,7 +19,6 @@ import com.hedera.hashgraph.sdk.HederaNetworkException;
 import com.hedera.hashgraph.sdk.HederaStatusException;
 import com.hedera.hashgraph.sdk.TransactionId;
 import com.hedera.hashgraph.sdk.TransactionReceipt;
-import com.hedera.hashgraph.sdk.TransactionRecord;
 import com.hedera.hashgraph.sdk.account.AccountId;
 import com.hedera.hashgraph.sdk.consensus.ConsensusMessageSubmitTransaction;
 import com.hedera.hashgraph.sdk.consensus.ConsensusTopicId;
@@ -29,12 +28,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 
@@ -66,17 +63,16 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
         // for (String k : System.getenv().keySet()){
         //    System.out.println(k + ":" + System.getenv(k));
         //}
-
-        // Grab the OPERATOR_ID and OPERATOR_KEY et al from lambda env
+        
         AccountId OPERATOR_ID = AccountId.fromString(System.getenv("OPERATOR_ID"));
-        // operator key is encrypted
-        Ed25519PrivateKey OPERATOR_KEY = Ed25519PrivateKey.fromString(this.decryptedOperatorKey());
+        AccountId NODE_ID = AccountId.fromString(System.getenv("NODE_ID"));
+        
+        Client client = getNewClient();
+        
         ConsensusTopicId TOPIC_ID = ConsensusTopicId.fromString(System.getenv("TOPIC_ID"));
-        // Build Hedera client
-        Client client = System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? Client.forMainnet() : Client.forTestnet();
-        // Set the operator account ID and operator private key
-        client.setOperator(OPERATOR_ID, OPERATOR_KEY);
-
+        
+        
+        
          // Download the docuemnt from S3 into a stream
         AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
                 .build();
@@ -95,50 +91,55 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
             ConsensusMessageSubmitTransaction setMessage = new ConsensusMessageSubmitTransaction()
                     .setTransactionId(transactionId)
                     .setTopicId(TOPIC_ID)
+                    .setNodeAccountId(NODE_ID)
                     .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5: %s", bucketName, srcFileKey, md5));
 
             TransactionId execute = null;
             
-            System.out.println("Send transaction to network");
+            System.out.println("Send transaction to network " +  Instant.now());
             
             do {
                 try {
                     execute = setMessage.execute(client);
                 } catch(Exception e){
-                    Thread.sleep(500);
+                    //e.printStackTrace();
+                    System.out.println("Retrying..." + Instant.now());
+                    //Thread.sleep(500);
                 }
             } while (execute==null);            
             
-            System.out.println("Sent!");
+            System.out.println("Sent! " + Instant.now());
             
-            //execute.getReceipt(client);
-            //execute.getRecord(client);
-
-            //TransactionRecord record1 = transactionId.getRecord(client);\
-            System.out.println("Getting a receipt with SUCCESS code");
+            System.out.println("Getting a receipt with SUCCESS code" +  Instant.now());
             
             do {
                 try {
                 receipt = transactionId.getReceipt(client);
                 } catch (Exception e){
-                    Thread.sleep(1000);
+                    //e.printStackTrace();
+                    System.out.println("Retrying..." + Instant.now());
+                    //Thread.sleep(1000);
                 }
             } while (receipt == null || !receipt.status.toString().endsWith("SUCCESS"));
             System.out.println("Got SUCCESS code");
             
-            System.out.println("Getting the timestamp");
+            System.out.println("Getting the timestamp " +  Instant.now());
             
             Instant consensusTimestamp = null;
             do {
                 try {
-                consensusTimestamp = transactionId.getRecord(client).consensusTimestamp;
+                consensusTimestamp = transactionId
+                        .getRecord(client, Duration.ofSeconds(10)).consensusTimestamp;
                 // create a text file copy
                 } catch (Exception e){
-                    Thread.sleep(1000);
+                    //e.printStackTrace();
+                    //client=getNewClient();
+                    System.out.println("Retrying..." + Instant.now());
+                    //Thread.sleep(500);
                 }
             }  while (consensusTimestamp==null);
             
-            System.out.println("Got it");
+            System.out.println("Got it " + Instant.now());
             s3Client.putObject(
                             bucketName, 
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.txt", 
@@ -207,12 +208,32 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             metadata
                             
                     );
-            } catch (InterruptedException i){
-                throw new RuntimeException("Exception: Can not interrupt the thread");
-            } catch (IOException ex) {
+        } catch (IOException ex) {
                 throw new RuntimeException("Exception: Can not get the md5 of the file");
         }
         return null;
+    }
+
+    private Client getNewClient() {
+        Client client = System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? Client.forMainnet() : Client.forTestnet();
+        
+        AccountId NODE_ID = AccountId.fromString(System.getenv("NODE_ID"));
+        
+        String NODE_IP_PORT = System.getenv("NODE_IP_PORT");
+        
+        AccountId OPERATOR_ID = AccountId.fromString(System.getenv("OPERATOR_ID"));        
+        
+        Ed25519PrivateKey OPERATOR_KEY = Ed25519PrivateKey.fromString(this.decryptedOperatorKey());
+
+        client.setOperator(OPERATOR_ID, OPERATOR_KEY);
+
+        client.replaceNodes(
+                Map.of(
+                        NODE_ID, NODE_IP_PORT 
+                )
+        
+        );
+        return client;
     }
 
     // pull the encrypted OPERATOR_KEY and decrypt. 
