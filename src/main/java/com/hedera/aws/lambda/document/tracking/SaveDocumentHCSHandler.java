@@ -33,6 +33,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 
@@ -95,19 +97,49 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                     .setTopicId(TOPIC_ID)
                     .setMessage(String.format("Bucket Name:%s  File Path: %s  File MD5: %s", bucketName, srcFileKey, md5));
 
-            TransactionId execute = setMessage.execute(client);
-            execute.getReceipt(client);
+            TransactionId execute = null;
+            
+            System.out.println("Send transaction to network");
+            
+            do {
+                try {
+                    execute = setMessage.execute(client);
+                } catch(Exception e){
+                    Thread.sleep(500);
+                }
+            } while (execute==null);            
+            
+            System.out.println("Sent!");
+            
+            //execute.getReceipt(client);
             //execute.getRecord(client);
 
             //TransactionRecord record1 = transactionId.getRecord(client);\
+            System.out.println("Getting a receipt with SUCCESS code");
             
-            receipt = transactionId.getReceipt(client);
-            for (int i = 0; i <= 100; i++) {
-                if (receipt.status.toString().endsWith("SUCCESS")) {
-                    
-                    Instant consensusTimestamp = transactionId.getRecord(client).consensusTimestamp;
-                    // create a text file copy
-                    s3Client.putObject(
+            do {
+                try {
+                receipt = transactionId.getReceipt(client);
+                } catch (Exception e){
+                    Thread.sleep(1000);
+                }
+            } while (receipt == null || !receipt.status.toString().endsWith("SUCCESS"));
+            System.out.println("Got SUCCESS code");
+            
+            System.out.println("Getting the timestamp");
+            
+            Instant consensusTimestamp = null;
+            do {
+                try {
+                consensusTimestamp = transactionId.getRecord(client).consensusTimestamp;
+                // create a text file copy
+                } catch (Exception e){
+                    Thread.sleep(1000);
+                }
+            }  while (consensusTimestamp==null);
+            
+            System.out.println("Got it");
+            s3Client.putObject(
                             bucketName, 
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.txt", 
                             String.format(
@@ -175,28 +207,11 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             metadata
                             
                     );
-                    
-                    
-                    break;
-                } else if (receipt.status.toString().endsWith("OK")) {
-                    System.out.println("Attempt "+  i + " is still justOK");
-                    Thread.sleep(3000L);
-                    receipt = transactionId.getReceipt(client);
-                } else {
-                    System.out.println("Error status: " + receipt.status.toString());
-                    return null;
-                }
-            }
-        } catch (HederaNetworkException | HederaStatusException | InterruptedException d) {
-            System.out.println("Exception, comms error");
-            d.printStackTrace();
-            throw new RuntimeException("Exception, comms error");
-        } catch (IOException ex) {
-            System.out.println("Exception: Can not read file to MD5");
-            ex.printStackTrace();
-            throw new RuntimeException("Exception: Can not read file to MD5");
+            } catch (InterruptedException i){
+                throw new RuntimeException("Exception: Can not interrupt the thread");
+            } catch (IOException ex) {
+                throw new RuntimeException("Exception: Can not get the md5 of the file");
         }
-
         return null;
     }
 

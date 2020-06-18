@@ -16,8 +16,8 @@ Throughout this documentation, we need to be consistent with the AWS region eg: 
 
 # Set up a symmetric encryption key
 
-Before uploading your code, you need to create a encryption key to pass the HH private key securely into the application. For this, goto [https://us-east-2.console.aws.amazon.com/kms/home](https://us-east-2.console.aws.amazon.com/kms/home)
- (note the `us-east-2` region in the URL and substitute appropriately). Create a new `symmetric` key and name it. Once created, click on the key alias and note  the key `ARN`. It should look similar to this format: `arn:aws:kms:us-east-2:707131235256:key/dbb9655a-7807-4a67-868f-8a683ba0d260`
+Before uploading your code, you need to create a encryption key to pass the HH private key securely into the application. For this, go to [https://us-east-2.console.aws.amazon.com/kms/home](https://us-east-2.console.aws.amazon.com/kms/home)
+ (note the `us-east-2` region in the URL and substitute appropriately). Create a new `symmetric` key and name it. Once created, click on the key alias and note  the key `ARN`. It should look similar to this format: `arn:aws:kms:us-east-2:xxxxxxxxx:key/xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx`
 
 # Create a user role
 You will need a role that has access to the `s3 bucket`.
@@ -48,13 +48,13 @@ Then in *Encryption configuration* tick `Enable helpers for encryption in transi
 Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
 
 In the card *Basic Settings* increase the `timeout` to `25 seconds` - on average decrypting sending and receiving feedback may take up 20 seconds. 
-Make sure you select "Use a customer master key" in the radio menu and paste the kms ARN you created in the step above. It should look similar to this `arn:aws:kms:us-east-2:707131235256:key/dbb9655a-7807-4a67-868f-8a683ba0d260`
+Make sure you select "Use a customer master key" in the radio menu and paste the kms ARN you created in the step above. It should look similar to this `arn:aws:kms:us-east-2:7xxxxxx:key/xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx`
 
 In the same card, select the role you defined in the previous section. There will be a link that will allow you to edit that role. Click on it and click through this sequence: `Attach policies > Create Policy > Json` On the resulting JSon editor you will see
 
 ```{
 {
-	"Version": "2012-10-17",
+    "Version": "2012-10-17",
     "Statement": []
 } 
 ```
@@ -66,8 +66,11 @@ Come back to the lambda function and save it if you have not done so already.
 # Create an s3 bucket and enable tracking
 
  Head over to [https://s3.console.aws.amazon.com/s3/home](https://s3.console.aws.amazon.com/s3/home) and create or select the bucket where HCS tracking will take place. Make sure the region matches with the region of the lambda function and decryption key. Add two folders to the bucket and name the first one 
+
  ```tracked-docs``` 
+
  and the second one 
+
  ```tracked-docs-log``` . 
 
  Click `Properties` of the bucket  (second tab at the top of the screen) and locate the `Events` card and click the [+] symbol to `add notification`. Tick the `All objects create events` and type `tracked-docs/` in the prefix section. Select `lambda function` in the *Send To* section and the resulting drop-down should list `hcsOnS3FileUpload`. 
@@ -98,7 +101,7 @@ You can send test events from within the lambda function administration console 
         "s3SchemaVersion": "1.0",
         "configurationId": "testConfigRule",
         "bucket": {
-          "name": "hh-nik-east",
+          "name": "hh-nik-east",         
           "ownerIdentity": {
             "principalId": "EXAMPLE"
           },
@@ -120,10 +123,10 @@ You can send test events from within the lambda function administration console 
 
 Upload a file in the `tracked-docs` folder and the HCS output will appear in `tracked-docs-log`. For instance if you upload `abc.pdf` the log folder will contain a text file named `abc.pdf.hcs.txt`. You can access that log file via the object url ```https://[bucket-name].s3.[region].amazonaws.com/tracked-docs-log/abc.pdf.hcs.txt```
 
-Additionally, you will also find a file named `abc.pdf.hcs.json` and one named `abc.pdf.hcs.html`. The latter is a HTML formated output of the same data.   
+Additionally, you will also find a file named `abc.pdf.hcs.json` and one named `abc.pdf.hcs.html`. The latter is a HTML formatted output of the same data.   
 
-If required, edit the permisions of both folders in `s3` so that the public can have read access to the contents. 
+If required, edit the permissions of both folders in `s3` so that the public can have read access to the contents. 
 
-You can serve the html file directly from amzon s3 by clicking on the properties tab of the bucket and enable static file web serving under the relevant card. 
+You can serve the html file directly from amazon s3 by clicking on the properties tab of the bucket and enable static file web serving under the relevant card. 
 
 If nothing shows up after the timeout period (25 seconds) then some error might have occurred; delete the file and retry. 
