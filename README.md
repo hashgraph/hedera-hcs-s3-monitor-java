@@ -47,7 +47,7 @@ Then in *Encryption configuration* tick `Enable helpers for encryption in transi
 
 Save the popup and make sure that the environment variable has been encrypted in the resulting screen. 
 
-In the card *Basic Settings* increase the `timeout` to `25 seconds` - on average decrypting sending and receiving feedback may take up 20 seconds. 
+In the card *Basic Settings* increase the `timeout` to `60 seconds` - on average decrypting sending and receiving feedback may take up 20 seconds. 
 Make sure you select "Use a customer master key" in the radio menu and paste the kms ARN you created in the step above. It should look similar to this `arn:aws:kms:us-east-2:7xxxxxx:key/xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx`
 
 In the same card, select the role you defined in the previous section. There will be a link that will allow you to edit that role. Click on it and click through this sequence: `Attach policies > Create Policy > Json` On the resulting JSon editor you will see
