@@ -41,8 +41,8 @@ and add
 - OPERATOR_KEY    | 302ea12...            # your HH private key
 - TOPIC_ID        | 0.0.23456             # your HH topic
 - NETWORK         | TESTNET               # or MAINNET
-- NETWORK_ID      | 0.0.12345             # e.g.   0.0.3 for main
-- NETWORK_IP_PORT | 123.456.789.012:1234  # e.g.   35.237.200.180:50211 for 0.0.3 on main 
+- NODE_ID         | 0.0.12345             # e.g.   0.0.3 for main
+- NODE_IP_PORT    | 123.456.789.012:1234  # e.g.   35.237.200.180:50211 for 0.0.3 on main 
 ```
 
 Then in *Encryption configuration* tick `Enable helpers for encryption in transit`. This will add new buttons next to the environment variables you have just created: click `Encrypt` on the `OPERATOR_KEY` variable only and then paste your ARN key from the section above into the resulting popup. While the popup is still open, expand the tree item: `Execution role policy` and copy the resulting javascript - you will need it later.
