@@ -92,7 +92,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             is.transferTo(os);
             byte[] osBytes = os.toByteArray();
-            String md5 = DatatypeConverter.printHexBinary(Md5Utils.computeMD5Hash(osBytes)).toUpperCase();
+            //String md5 = DatatypeConverter.printHexBinary(Md5Utils.computeMD5Hash(osBytes)).toUpperCase();
             String sha384 = DigestUtils.sha384Hex(osBytes);
             
             ConsensusMessageSubmitTransaction setMessage = new ConsensusMessageSubmitTransaction()
@@ -102,11 +102,11 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                     .setMessage(String.format(
                             "Bucket Name: %s "
                           + "File Path: %s "
-                          + "File MD5: %s "
+                          //+ "File MD5: %s "
                           + "File SHA384: %s",
                             bucketName, 
                             srcFileKey, 
-                            md5,
+                          //  md5,
                             sha384
                             )
                     );
@@ -162,7 +162,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.txt", 
                             String.format(
                                       "Filename: %s\n"
-                                    + "MD5 checksum: %s\n" 
+                                    //+ "MD5 checksum: %s\n" 
                                     + "SHA384 checksum: %s\n" 
                                     + "Transaction-ID: %s\n"
                                     + "Timestamp: %s\n"
@@ -171,7 +171,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                                     + "Running hash: %s \n"
                                     + (System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? "Link: https://ledger.hashlog.io/tx/%s" :"Link: https://ledger-testnet.hashlog.io/tx/%s") 
                             , srcFileKey
-                            , md5
+                            //, md5
                             , sha384
                             , transactionId.toString()
                             , consensusTimestamp.toString()
@@ -187,7 +187,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             srcFileKey.replace("tracked-docs", "tracked-docs-log")+".hcs.json", 
                             String.format(
                                       "{\n\tfilename:\"%s\",\n"
-                                    + "\tmd5:\"%s\",\n" 
+                                    //+ "\tmd5:\"%s\",\n" 
                                     + "\tsha384:\"%s\",\n" 
                                     + "\ttransaction-id:\"%s\",\n"
                                     + "\ttimestamp:\"%s\",\n"
@@ -197,7 +197,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                                     + (System.getenv("NETWORK").equalsIgnoreCase("MAINNET") ? "\tlink:\"https://ledger.hashlog.io/tx/%s\"" :"\tLink:\"https://ledger-testnet.hashlog.io/tx/%s\"") 
                                     +"\n}"
                             , srcFileKey
-                            , md5
+                            //, md5
                             , sha384
                             , transactionId.toString()
                             , consensusTimestamp.toString()
@@ -217,7 +217,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
                             new ByteArrayInputStream(
                                 this.getHTMLTemplate()
                                     .replace("{0}", srcFileKey)
-                                    .replace("{1}", md5)
+                                    //.replace("{1}", md5)
                                     .replace("{1_1}", sha384)
                                     .replace("{2}", transactionId.toString())
                                     .replace("{2_1}", consensusTimestamp.toString())
@@ -348,7 +348,7 @@ public class SaveDocumentHCSHandler implements RequestHandler<S3Event, String>
         "<body style=\"background: #222;\">\n" +
         "	<div style=\"overflow-x:auto;\"><table>\n" +
         "		<tr><td class=\"title\">Filename</td><td class=\"data\">{0}</td></tr>\n" +
-        "		<tr><td class=\"title\">MD5 hash</td><td class=\"data\">{1}</td></tr>\n" +
+//        "		<tr><td class=\"title\">MD5 hash</td><td class=\"data\">{1}</td></tr>\n" +
         "		<tr><td class=\"title\">SHA384 hash</td><td class=\"data\">{1_1}</td></tr>\n" +
                 
         "		<tr><td class=\"title\">Transaction-ID</td> <td class=\"data\">{2}</td></tr>\n" +
